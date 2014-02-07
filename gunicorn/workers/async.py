@@ -108,7 +108,7 @@ class AsyncWorker(base.Worker):
                     respiter.close()
             if resp.should_close():
                 raise StopIteration()
-        except Exception:
+        except Exception as e:
             if resp and resp.headers_sent:
                 # If the requests have already been sent, we should close the
                 # connection to indicate the error.
@@ -119,7 +119,9 @@ class AsyncWorker(base.Worker):
                 except socket.error:
                     pass
                 raise StopIteration()
-            raise
+            # Only send back traceback in HTTP in debug mode.
+            self.handle_error(req, sock, addr, e)
+            return
         finally:
             try:
                 self.cfg.post_request(self, req, environ, resp)

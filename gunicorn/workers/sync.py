@@ -102,10 +102,13 @@ class SyncWorker(base.Worker):
                 self.log.debug("Error processing SSL request.")
                 self.handle_error(req, client, addr, e)
         except socket.error as e:
-            if e.args[0] != errno.EPIPE:
-                self.log.exception("Error processing request.")
+            if e.args[0] not in (errno.EPIPE, errno.ECONNRESET):
+                self.log.exception("Socket error processing request.")
             else:
-                self.log.debug("Ignoring EPIPE")
+                if e.args[0] == errno.ECONNRESET:
+                    self.log.debug("Ignoring connection reset")
+                else:
+                    self.log.debug("Ignoring EPIPE")
         except Exception as e:
             self.handle_error(req, client, addr, e)
         finally:
